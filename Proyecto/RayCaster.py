@@ -8,52 +8,33 @@ colors = {
     "3":(0,0,255)
 }
 
-wall1 = pygame.image.load('textures/wall1.png')
-wall2 = pygame.image.load('textures/wall2.png')
-wall3 = pygame.image.load('textures/wall3.png')
-end = pygame.image.load('textures/finish line.jpg')
+wall1 = pygame.image.load('textures/engine.png')
+wall2 = pygame.image.load('textures/hall.png')
+wall3 = pygame.image.load('textures/caffeteria.png')
+wall4 = pygame.image.load('textures/wall.png')
 
 enemies = [
   {
-    "x": 100,
-    "y": 200,
-    "texture": pygame.image.load('textures/sprite4.png')
+    "x": 200,
+    "y": 75,
+    "texture": pygame.image.load('textures/red.png')
   },
-  {
-    "x": 280,
-    "y": 190,
-    "texture": pygame.image.load('textures/sprite3.png')
-  },
-  {
-    "x": 225,
-    "y": 340,
-    "texture": pygame.image.load('textures/sprite4.png')
-  },
-  {
-    "x": 220,
-    "y": 425,
-    "texture": pygame.image.load('textures/sprite3.png')
-  },
-  {
-    "x": 320,
-    "y": 420,
-    "texture": pygame.image.load('textures/sprite4.png')
-  }
 ]
 
 textures = {
     "1": wall1,
     "2": wall2,
     "3": wall3,
-    "4": end,
+    "4": wall4,
 }
 
 black = (0,0,0)
 hp = pygame.image.load('textures/healthbar.png')
 hud = pygame.image.load('textures/HUD.png')
 
-aspect_ratio = 128/50
-block_aspect_ratio = 128/25
+aspect_ratio = 26/50
+block_aspect_ratio_height= 58/25
+block_aspect_ratio_width = 66/25
 class Raycaster:
     def __init__(self, width, height):
         self.width = width
@@ -76,8 +57,8 @@ class Raycaster:
     def draw_rectangle(self, x, y, texture):
         for cx in range(x, x + 25):
             for cy in range(y, y + 25):
-                tx = int((cx - x) * block_aspect_ratio) 
-                ty = int((cy - y) * block_aspect_ratio)
+                tx = int((cx - x) * block_aspect_ratio_width) 
+                ty = int((cy - y) * block_aspect_ratio_height)
                 c = texture.get_at((tx, ty))
                 self.point(cx, cy, c) 
 
@@ -112,7 +93,7 @@ class Raycaster:
         start = int(250 - h*0.5)
         end = int(250 + h*0.5)
         for y in range(start, end):
-            ty = int(((y - start)*128)/(end - start))
+            ty = int(((y - start)*58)/(end - start))
             c = texture.get_at((tx, ty))
             self.point(x, y, c)
     
@@ -122,7 +103,7 @@ class Raycaster:
         sprite_d = ((self.player["x"] - sprite["x"])**2 + (self.player["y"] - sprite["y"])**2)**0.5
         sprite_size = (500/sprite_d) * 70
 
-        sprite_x = 500 + (sprite_a - self.player["a"]) * 1/self.fov_div_mapsize + 250 - sprite_size/2
+        sprite_x = 250 + (sprite_a - self.player["a"]) * 1/self.fov_div_mapsize + 250 - sprite_size/2
         sprite_y = 250 - sprite_size/2
 
         sprite_x = int(sprite_x)
@@ -131,13 +112,13 @@ class Raycaster:
 
         for x in range(sprite_x, sprite_x + sprite_size):
             for y in range(sprite_y, sprite_y + sprite_size):
-                if 0 < x < 1000 and self.zbuffer[x-1000] >= sprite_d:
-                    tx = int((x-sprite_x) * 128/sprite_size)
-                    ty = int((y-sprite_y) * 128/sprite_size)
+                if 0 < x < 1000 and self.zbuffer[x]>= sprite_d:
+                    tx = int((x-sprite_x) * 20/sprite_size)
+                    ty = int((y-sprite_y) * 26/sprite_size)
                     c = sprite["texture"].get_at((tx,ty))
-                    if c!= (152,0,136,255):
+                    if (c!= (121,230,234,255) and c!= (56,179,184,255) and c!= (39,117,120,255)) :
                         self.point(x,y,c)
-                        self.zbuffer[x-1000] = sprite_d
+                        self.zbuffer[x] = sprite_d
 
     def draw_healthbar(self,xi,yi, w = 300, h = 100):
         for x in range(xi, xi + w):
@@ -167,18 +148,20 @@ class Raycaster:
             self.draw_stake(x, h, textures[c], tx)
             self.zbuffer[i] = d
 
-        for x in range(0, 250,25):
-            for y in range(0, 250,25):
+        for x in range(0, 500,25):
+            for y in range(0, 325,25):
                 i = int(x/25)
                 j = int(y/25)
-                if self.map[j][i] != ' ' :
+                if self.map[j][i] != ' ' and self.map[j][i] != '\n': 
                     self.draw_rectangle(x, y, textures[self.map[j][i]])
+                else:
+                    self.point(i,j,(255,255,255))
         
         for enemy in enemies:
             self.draw_sprite(enemy)
         
-        self.draw_healthbar(800, 0)
-        self.draw_HUD(0,400)
+        # self.draw_healthbar(800, 0)
+        # self.draw_HUD(0,400)
 
 def text_objects(text, font):
     textSurface = font.render(text, True, black)
@@ -225,7 +208,7 @@ main_menu()
 # render loop
 while 1:
     d = 10
-    screen.fill((0, 0, 0))
+    screen.fill((255, 255, 255))
     for e in pygame.event.get():
         if e.type == pygame.QUIT or (e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE):
             exit(0)
