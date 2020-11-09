@@ -169,13 +169,13 @@ class Raycaster:
 
     def render(self):
         player_angle = self.player["a"] - self.half_fov 
-        for i in range(0,1000,10):
+        for i in range(0,1000):
             a = player_angle + i * self.fov_div_mapsize
             d, c, tx = self.cast_ray(a)
-
-            h = 500/(d* cos(a- self.player["a"])) * 75
-            self.draw_stake(i, h, textures[c], tx)
-            self.zbuffer[i] = d
+            if d >= 2:
+                h = 500/(d* cos(a- self.player["a"])) * 75
+                self.draw_stake(i, h, textures[c], tx)
+                self.zbuffer[i] = d
 
         
         for enemy in enemies:
@@ -198,6 +198,7 @@ class Raycaster:
         
         self.draw_HUD(hud,1000-113,500-112)
         self.draw_HUD(use_button,1000-113,500-224)
+        return d
 
 def display_fps(clock, Font,screen):
     display_fps = str(int(clock.get_fps()))
@@ -246,8 +247,9 @@ def win_screen():
         
 def main_loop(screen,r,clock,font):
     background = pygame.image.load('textures/background1.png')
+    distance = float('inf')
     while 1:
-        d = 10
+        d = 7
         screen.fill((255, 255, 255))
         screen.blit(background, (0,0))
         for e in pygame.event.get():
@@ -259,7 +261,8 @@ def main_loop(screen,r,clock,font):
                 if e.key == pygame.K_RIGHT:
                     r.player["a"] += pi/20
 
-                if e.key == pygame.K_UP:
+                if e.key == pygame.K_UP and distance> 8:
+                    print(distance)
                     r.player["x"] += int(d * cos(r.player["a"]))
                     r.player["y"] += int(d * sin(r.player["a"]))
                 if e.key == pygame.K_DOWN:
@@ -268,7 +271,7 @@ def main_loop(screen,r,clock,font):
         
         if(700<r.player["x"]<950 and 500<r.player["y"]<600):
             break
-        r.render()
+        distance = r.render()
         display_fps(clock,font,screen)
         pygame.display.flip()
         clock.tick(15)
