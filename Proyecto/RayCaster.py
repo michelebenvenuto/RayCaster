@@ -191,6 +191,10 @@ class Raycaster:
                 j = int(y/12)
                 if self.map[j][i] != ' ' and self.map[j][i] != '\n': 
                     self.draw_rectangle(x, y, textures[self.map[j][i]])
+
+        for i in range(0,4):
+            for j in range(0,4):
+                self.point(int(self.player["x"] * 240/1000)+i, int(self.player["y"] * 120/500)+j,(0,0,255))
         
         self.draw_HUD(hud,1000-113,500-112)
         self.draw_HUD(use_button,1000-113,500-224)
@@ -272,6 +276,8 @@ pygame.init()
 screen = pygame.display.set_mode((1000, 500), pygame.DOUBLEBUF)
 r = Raycaster(1000, 500)
 r.load_map('Proyecto/level.txt')
+pygame.mixer.music.load('sounds/music.mp3')
+pygame.mixer.music.play()
 font = pygame.font.SysFont('Arial', 36, bold=True)
 clock = pygame.time.Clock()
 main_menu()
