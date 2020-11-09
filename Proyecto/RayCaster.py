@@ -1,12 +1,6 @@
 import pygame
 from math import cos, pi, sin, atan2
-
-
-colors = {
-    "1":(255,0,0),
-    "2":(0,255,0),
-    "3":(0,0,255)
-}
+from numba import jit
 
 wall1 = pygame.image.load('textures/engine.png')
 wall2 = pygame.image.load('textures/hall.png')
@@ -44,7 +38,11 @@ enemies = [
     "y": 375,
     "texture": pygame.image.load('textures/cyan.png')
   },
-  
+  {
+   "x": 800,
+    "y": 550,
+    "texture": pygame.image.load('textures/dead.png')
+  },
 ]
 
 textures = {
@@ -55,8 +53,10 @@ textures = {
 }
 
 black = (0,0,0)
+white = (255,255,255)
 hp = pygame.image.load('textures/healthbar.png')
-hud = pygame.image.load('textures/HUD.png')
+hud = pygame.image.load('textures/report_button.png')
+use_button = pygame.image.load('textures/use_button.png')
 
 aspect_ratio = 26/50
 block_aspect_ratio_height= 58/25
@@ -82,8 +82,8 @@ class Raycaster:
 
     def draw_rectangle(self, x, y, texture):
         for cx in range(x, x + 12):
+            tx = int((cx - x) * block_aspect_ratio_width) 
             for cy in range(y, y + 12):
-                tx = int((cx - x) * block_aspect_ratio_width) 
                 ty = int((cy - y) * block_aspect_ratio_height)
                 c = texture.get_at((tx, ty))
                 self.point(cx, cy, c) 
@@ -98,7 +98,6 @@ class Raycaster:
         while 1:
             x = self.player["x"] + d * cos(a)
             y = self.player["y"] + d * sin(a)
-
             i = int(x/self.blocksize)
             j = int(y/self.blocksize)
             if self.map[j][i] != ' ':
@@ -135,12 +134,13 @@ class Raycaster:
         sprite_x = int(sprite_x)
         sprite_y = int(sprite_y)
         sprite_size = int(sprite_size)
-
+        sprite_ratios = 26/sprite_size
+        
         for x in range(sprite_x, sprite_x + sprite_size):
+            tx = int((x-sprite_x) * 20/sprite_size)
             for y in range(sprite_y, sprite_y + sprite_size):
                 if 0 < x < 1000 and self.zbuffer[x]>= sprite_d:
-                    tx = int((x-sprite_x) * 20/sprite_size)
-                    ty = int((y-sprite_y) * 26/sprite_size)
+                    ty = int((y-sprite_y) * sprite_ratios)
                     c = sprite["texture"].get_at((tx,ty))
                     if (c!= (121,230,234,255) and c!= (56,179,184,255) and c!= (39,117,120,255)) :
                         self.point(x,y,c)
@@ -155,23 +155,26 @@ class Raycaster:
                 if c != (246,246,246):
                     self.point(x,y,c)
 
-    def draw_HUD(self,xi,yi, w = 1000, h = 100):
+    def draw_HUD(self,item,xi,yi, w = 113, h = 112):
+        width_ratios = int(113/w)
+        height_ratios = int(112/h)
         for x in range(xi, xi + w):
             for y in range(yi, yi + h):
-                tx = int((x - xi) * 320/w)
-                ty = int((y - yi) * 40/h)
-                c = hud.get_at((tx, ty))
-                self.point(x,y,c)
+                tx = int((x - xi) * width_ratios)
+                ty = int((y - yi) * height_ratios)
+                c = item.get_at((tx, ty))
+                if c !=(0,0,0,0):
+                    self.point(x,y,c)
+
 
     def render(self):
-        
-        for i in range(0,1000):
-            a = self.player["a"] - self.half_fov + i * self.fov_div_mapsize
+        player_angle = self.player["a"] - self.half_fov 
+        for i in range(0,1000,10):
+            a = player_angle + i * self.fov_div_mapsize
             d, c, tx = self.cast_ray(a)
 
-            x = i
             h = 500/(d* cos(a- self.player["a"])) * 75
-            self.draw_stake(x, h, textures[c], tx)
+            self.draw_stake(i, h, textures[c], tx)
             self.zbuffer[i] = d
 
         
@@ -181,20 +184,28 @@ class Raycaster:
         for x in range(0,240):
             for y in range(0,150):
                 self.point(x,y,(51,255,51))
+                
         for x in range(0, 250,12):
+            i = int(x/12)
             for y in range(0, 162,12):
-                i = int(x/12)
                 j = int(y/12)
                 if self.map[j][i] != ' ' and self.map[j][i] != '\n': 
                     self.draw_rectangle(x, y, textures[self.map[j][i]])
-                
-                    
+        
+        self.draw_HUD(hud,1000-113,500-112)
+        self.draw_HUD(use_button,1000-113,500-224)
+
+def display_fps(clock, Font,screen):
+    display_fps = str(int(clock.get_fps()))
+    render = font.render(display_fps,0,(0,0,255))
+    screen.blit(render, (935,5))
 
 def text_objects(text, font):
-    textSurface = font.render(text, True, black)
+    textSurface = font.render(text, True, white)
     return textSurface, textSurface.get_rect()
 
 def main_menu():
+    menu = pygame.image.load('textures/menu.png')
     start = False
     while start == False:
         for event in pygame.event.get():
@@ -204,56 +215,65 @@ def main_menu():
                 if event.key == pygame.K_RETURN:
                     start = True
         screen.fill((255,255,255))
+        screen.blit(menu, (0,0))
         largeText = pygame.font.Font('freesansbold.ttf', 100)
         TextSurf, TextRect = text_objects("Press enter to start", largeText)
-        TextRect.center = (500,250)
+        TextRect.center = (500,300)
         screen.blit(TextSurf,TextRect)
         pygame.display.update()
         clock = pygame.time.Clock()
         clock.tick(15)
+        
 def win_screen():
+    background = pygame.image.load('textures/end.jpg')
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit(0)
         screen.fill((255,255,255))
+        screen.blit(background, (0,0))
         largeText = pygame.font.Font('freesansbold.ttf', 50)
-        TextSurf, TextRect = text_objects("Thx for playing the game", largeText)
+        TextSurf, TextRect = text_objects("You found a body, but. Who did it?", largeText)
         TextRect.center = (500,250)
         screen.blit(TextSurf,TextRect)
         pygame.display.update()
         clock = pygame.time.Clock()
         clock.tick(15)
+        
+def main_loop(screen,r,clock,font):
+    background = pygame.image.load('textures/background1.png')
+    while 1:
+        d = 10
+        screen.fill((255, 255, 255))
+        screen.blit(background, (0,0))
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT or (e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE):
+                exit(0)
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_LEFT:
+                    r.player["a"] -= pi/20
+                if e.key == pygame.K_RIGHT:
+                    r.player["a"] += pi/20
 
+                if e.key == pygame.K_UP:
+                    r.player["x"] += int(d * cos(r.player["a"]))
+                    r.player["y"] += int(d * sin(r.player["a"]))
+                if e.key == pygame.K_DOWN:
+                    r.player["x"] -= int(d * cos(r.player["a"]))
+                    r.player["y"] -= int(d * sin(r.player["a"]))
+        
+        if(700<r.player["x"]<950 and 500<r.player["y"]<600):
+            break
+        r.render()
+        display_fps(clock,font,screen)
+        pygame.display.flip()
+        clock.tick(15)
 pygame.init()
-screen = pygame.display.set_mode((1000, 500))
+screen = pygame.display.set_mode((1000, 500), pygame.DOUBLEBUF)
 r = Raycaster(1000, 500)
 r.load_map('Proyecto/level.txt')
-
+font = pygame.font.SysFont('Arial', 36, bold=True)
 clock = pygame.time.Clock()
 main_menu()
-# render loop
-while 1:
-    d = 10
-    screen.fill((255, 255, 255))
-    for e in pygame.event.get():
-        if e.type == pygame.QUIT or (e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE):
-            exit(0)
-        if e.type == pygame.KEYDOWN:
-            if e.key == pygame.K_LEFT:
-                r.player["a"] -= pi/20
-            if e.key == pygame.K_RIGHT:
-                r.player["a"] += pi/20
-
-            if e.key == pygame.K_UP:
-                r.player["x"] += int(d * cos(r.player["a"]))
-                r.player["y"] += int(d * sin(r.player["a"]))
-            if e.key == pygame.K_DOWN:
-                r.player["x"] -= int(d * cos(r.player["a"]))
-                r.player["y"] -= int(d * sin(r.player["a"]))
-    
-    if(400<r.player["x"]<450 and 400<r.player["y"]<450):
-        break
-    r.render()
-    pygame.display.flip()
+main_loop(screen,r,clock,font)
 win_screen()
