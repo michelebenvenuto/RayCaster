@@ -262,7 +262,6 @@ def main_loop(screen,r,clock,font):
                     r.player["a"] += pi/20
 
                 if e.key == pygame.K_UP and distance> 8:
-                    print(distance)
                     r.player["x"] += int(d * cos(r.player["a"]))
                     r.player["y"] += int(d * sin(r.player["a"]))
                 if e.key == pygame.K_DOWN:
